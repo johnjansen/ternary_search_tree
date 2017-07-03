@@ -39,7 +39,7 @@ module TernarySearch
 
       # set @value, to the first Char of string
       # unless value is already set
-      @value = head if @value.nil? # TODO understand when this can happen & document
+      @value = head if @value.nil?
 
       # assign the non-nil value locally
       value = @value.not_nil!

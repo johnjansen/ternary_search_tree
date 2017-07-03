@@ -5,6 +5,7 @@ class String
   end
 
   def tail
+    return "" if self.size < 2
     self[1..-1]
   end
 end
