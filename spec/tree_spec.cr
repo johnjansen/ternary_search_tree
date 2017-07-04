@@ -31,14 +31,16 @@ describe TernarySearch::Tree do
     output[3].should eq "pr"
   end
 
-  it "should compute the max length of the tree" do
+  it "should compute the max size of the tree" do
     tst = TernarySearch::Tree.new
     tst.insert "p"
     tst.insert "pr"
-    tst.insert "prototype"
+    tst.insert "proto"
+    tst.insert "zyxaaa"
+    tst.insert "zyxdcba"
     tst.insert "cra"
 
     # len = 0
-    tst.max_word_length.should eq 8
+    tst.max_word_size.should eq 7
   end
 end

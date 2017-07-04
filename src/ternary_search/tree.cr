@@ -273,44 +273,32 @@ module TernarySearch
       end
     end
 
-    # compute the length of the longest word in the TST
-    def max_word_length(length_ptr : (Pointer(Int32) | Nil) = nil, depth : Int32 = 0)
-      # since this is recursive,
-      # and we want to start with nothing passed in
-      # and we need a shared variable to hold the max length
-      # we create a var `l` and get the pointer to it
-      # then throw the pointer around from here on out
+    # Compute the size of the longest word in the tree.
+    def max_word_size
+      # The minimum possible word size of a node is 1, as it always has a value.
+      max = 1
 
-      # keep it out in the open so it doesnt get GC'd
-      # TODO determine if this a correct assumption
-      l = 0
-
-      # get a pointer to `l` if its not already defined
-      length_ptr = pointerof(l) if length_ptr.is_a?(Nil) || length_ptr.null?
-
-      # increment the value of the var `l` that is at the end
-      # of the pointer `length_ptr` if the current depth
-      # returns a word, and the depth is greater than the current length
-      length_ptr.value = depth if word_end? && depth > length_ptr.value
-      depth += 1
-
-      # recurse the left
-      if !@left.nil?
-        @left.not_nil!.max_word_length(length_ptr, depth)
+      if left = @left
+        # Find the size of the left tree and compare it to the maximum.
+        size = left.max_word_size
+        max = {max, size}.max
       end
 
-      # recurse the direct children
-      if !@equal.nil?
-        @equal.not_nil!.max_word_length(length_ptr, depth)
+      if equal = @equal
+        # Find the size of the equal tree and compare it to the maximum. We add
+        # one to the returned size because the equal tree includes the current
+        # node's value in it's length.
+        size = equal.max_word_size + 1
+        max = {max, size}.max
       end
 
-      # recurse the right
-      if !@right.nil?
-        @right.not_nil!.max_word_length(length_ptr, depth)
+      if right = @right
+        # Find the size of the right tree and compare it to the maximum.
+        size = right.max_word_size
+        max = {max, size}.max
       end
 
-      # return the value stored in the var at the end of the pointer
-      return length_ptr.value
+      max
     end
   end
 end
