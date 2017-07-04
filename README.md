@@ -21,11 +21,23 @@ dependencies:
 require "ternary_search"
 
 tst = TernarySearch::Tree.new
+
+# add to the TST
 tst.insert("polygon")  # => nil
 tst.insert("triangle") # => nil
+
+# search the TST
 tst.search("polygon")  # => true
 tst.search("poly")     # => false
 tst.search("triangle") # => true
+
+# get the max word length
+tst.max_word_length # => 8
+
+# get an array of words in the TST
+# DO NOT USE THIS ON LARGE TST's
+# i'm looking into a block version of this!
+tst.words = ["polygon", "triangle"]
 ```
 
 ## Contributing
