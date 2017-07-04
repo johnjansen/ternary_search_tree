@@ -17,9 +17,10 @@ module TernarySearch
     # this class.
     @combined_value : UInt32 = 0_u32
 
-    @left : (Tree | Nil)  # a tree where the next node value is less than this value
-    @equal : (Tree | Nil) # a tree where the next node value is equal to this value
-    @right : (Tree | Nil) # a tree where the next node value is greater than this value
+    protected getter left : Tree?  # a tree where the next node value is less than this value
+    protected getter equal : Tree? # a tree where the next node value is equal to this value
+    protected getter right : Tree? # a tree where the next node value is greater than this value
+
 
     def value : Char?
       # Take the last 31 bits and convert to Char
@@ -29,7 +30,7 @@ module TernarySearch
       char == '\0' ? nil : char
     end
 
-    def value=(char : Char)
+    private def value=(char : Char)
       # Take the value of this char as a UInt32
       value = char.ord.to_u32
 
@@ -51,7 +52,7 @@ module TernarySearch
       @combined_value.bit(31) == 1
     end
 
-    def word_end=(word_end : Bool)
+    private def word_end=(word_end : Bool)
       if word_end
         # Set the 32nd bit
         @combined_value |= 1 << 31
@@ -128,7 +129,6 @@ module TernarySearch
     # tst.search("poly")     # => false
     # tst.search("triangle") # => true
     # ```
-
     def search(string : String) : Bool
       search(Char::Reader.new(string))
     end
@@ -187,11 +187,9 @@ module TernarySearch
       end
     end
 
-    # returns an array of words in the TST
-    # it is recommended that you do NOT use this on large TST's
-    # TODO investigate an iterator
-    # TODO workaround the yield issue of infinite inlining
-    #      possibly with a Proc?
+    # Returns an array of all the words in the tree, in alphabetical order. It
+    # is recommended that you do NOT use this on large trees because the memory
+    # usage is large. Attempt to use `#each_word` if possible instead.
     #
     # ```
     # tst = TernarySearch::Tree.new
@@ -199,23 +197,80 @@ module TernarySearch
     # tst.insert("triangle") # => nil
     # tst.words => ["polygon", "triangle"]
     # ```
-    def words(output : Array(String) = [] of String, stack = "")
-      stack += value.to_s unless value.nil?
-
-      if !@left.nil?
-        ls = ""
-        @left.not_nil!.words(output, ls)
+    def words
+      output = Array(String).new
+      each_word do |word|
+        output << word
       end
-      output << stack if word_end?
-      if !@equal.nil?
-        @equal.not_nil!.words(output, stack)
-      end
-      if !@right.nil?
-        rs = ""
-        @right.not_nil!.words(output, rs)
-      end
-
       output
+    end
+
+    # Yields each word in the tree to the block, in alphabetical order.
+    #
+    # ```
+    # tst = TernarySearch::Tree.new
+    # tst.insert("polygon")  # => nil
+    # tst.insert("triangle") # => nil
+    # tst.words => ["polygon", "triangle"]
+    # ```
+    def each_word
+      # The traversal stack holds the state required to traverse all the parent
+      # nodes. It stores a reference to the parent node, and a boolean which is
+      # true when the next tree to traverse is the equal tree and false when the
+      # next tree to traverse is the right tree.
+      traversal_stack = Array({Tree, Bool}).new
+
+      # We start with the current tree and with an empty word stack.
+      current = self
+      word_stack = Array(Char).new
+
+      loop do
+        if current
+          # If the node we're trying to visit exists, add it to the traversal
+          # stack and traverse the left tree. As we're traversing the left tree,
+          # we know that the next tree we have to traverse under this node is
+          # the equal tree, so we set `traverse_equal` to true.
+          traversal_stack << {current, true}
+          current = current.left
+        else
+          # If the traversal stack is empty and there is no current node there's
+          # nothing to do so we exit the loop.
+          break if traversal_stack.empty?
+
+          # Pop the parent node and `traverse_equal` from the stack.
+          current, traverse_equal = traversal_stack.pop
+
+          if traverse_equal
+            # If `traverse_equal` is set, we are returning to traverse the equal
+            # tree, but first we must add the node's value to the word stack, as
+            # every node in the equal tree has this node's letter in. `value` is
+            # never nil apart from when constructing the tree.
+            word_stack << current.value.not_nil!
+
+            # If this node is marked as the end of a word, we can yield the word
+            # stack as a string to the block.
+            yield word_stack.join if current.word_end?
+
+            # Add this node to the stack again, but this time we set the boolean
+            # to false because we want to traverse the right tree when we return
+            # to this node.
+            traversal_stack << {current, false}
+
+            # We want to traverse the equal tree now.
+            current = current.equal
+          else
+            # `traverse_equal` was not set so we want to traverse the right
+            # tree. We don't add to the stack because we never need to return to
+            # this node.
+            current = current.right
+
+            # Here we have just finished traversing the equal tree, so we pop
+            # the value we pushed to the word stack earlier so it's not on the
+            # stack when traversing the right tree.
+            word_stack.pop
+          end
+        end
+      end
     end
 
     # compute the length of the longest word in the TST

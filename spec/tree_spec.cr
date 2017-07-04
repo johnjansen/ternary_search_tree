@@ -20,13 +20,15 @@ describe TernarySearch::Tree do
     tst = TernarySearch::Tree.new
     tst.insert "p"
     tst.insert "pr"
+    tst.insert "pa"
     tst.insert "cr"
 
     output = tst.words
 
     output[0].should eq "cr"
     output[1].should eq "p"
-    output[2].should eq "pr"
+    output[2].should eq "pa"
+    output[3].should eq "pr"
   end
 
   it "should compute the max length of the tree" do
