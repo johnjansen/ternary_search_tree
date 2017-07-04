@@ -29,7 +29,7 @@ module TernarySearch
       # split the *string* into Char, String
       # e.g. "polygon".head => 'p' # Char
       #      "polygon".tail => "olygon" # String
-      raw_head, tail = string.head, string.tail
+      raw_head, tail = string[0], string[1..-1]
 
       # bail out if the string is empty
       return nil if raw_head.nil?
@@ -91,7 +91,7 @@ module TernarySearch
       # split the *string* into Char, String
       # e.g. "polygon".head => 'p' # Char
       #      "polygon".tail => "olygon" # String
-      raw_head, tail = string.head, string.tail
+      raw_head, tail = string[0], string[1..-1]
 
       # bail out if the string or value is empty
       return false if raw_head.nil? || @value.nil?
