@@ -12,12 +12,56 @@ module TernarySearch
   # tst.search("gon")      # => false
   # ```
   class Tree
-    @value : (Char | Nil)  # the first character of the string represented by this tree
-    @ending : Bool = false # a bool representing wether this is the end of a word
+    # Contains the Char value of this tree node with the highest bit set if
+    # the node represents the end of a word. This is done to reduce the size of
+    # this class.
+    @combined_value : UInt32 = 0_u32
 
     @left : (Tree | Nil)  # a tree where the next node value is less than this value
     @equal : (Tree | Nil) # a tree where the next node value is equal to this value
     @right : (Tree | Nil) # a tree where the next node value is greater than this value
+
+    def value : Char?
+      # Take the last 31 bits and convert to Char
+      char = (@combined_value & ~(1 << 31)).chr
+
+      # We use '\0' to signal a nil char value
+      char == '\0' ? nil : char
+    end
+
+    def value=(char : Char)
+      # Take the value of this char as a UInt32
+      value = char.ord.to_u32
+
+      # Code points should never have the highest bit set
+      # NUL is also invalid because we use it to signal nil
+      raise "Invalid Char!" if value == 0 || value > (1 << 31) - 1
+
+      # Set the highest bit if the word_end bit is set
+      value |= 1 << 31 if word_end?
+
+      @combined_value = value
+
+      # Return the value we set
+      char
+    end
+
+    def word_end? : Bool
+      # Check the 32nd bit (index 31)
+      @combined_value.bit(31) == 1
+    end
+
+    def word_end=(word_end : Bool)
+      if word_end
+        # Set the 32nd bit
+        @combined_value |= 1 << 31
+      else
+        # Unset the 32nd bit
+        @combined_value &= ~(1 << 31)
+      end
+
+      word_end
+    end
 
     # insert *string* into the tree
     #
@@ -39,7 +83,7 @@ module TernarySearch
       # Set the node's value to the first character of the string unless it's
       # already been set. We store the value locally so we don't have to do nil
       # checks.
-      value = (@value ||= head)
+      value = (self.value ||= head)
 
       if head < value
         # The first character of the string is less than value, we insert the
@@ -57,7 +101,7 @@ module TernarySearch
 
         if !reader.has_next?
           # This is the end of the string, therefore the end of the word.
-          @ending = true
+          self.word_end = true
         else
           # If the first Char of string is equal to value, we insert the string
           # apart from it's first character into the equal tree.
@@ -94,7 +138,7 @@ module TernarySearch
       return false unless reader.has_next?
 
       head = reader.current_char
-      value = @value
+      value = self.value
 
       # Bail out if the node value is empty
       return false unless value
@@ -129,8 +173,8 @@ module TernarySearch
 
         if !reader.has_next?
           # There is nothing more to look for.
-          # Therefore, if this is an @ending node, then we found it, otherwise we did not.
-          return @ending
+          # Therefore, if this is an word end node, then we found it, otherwise we did not.
+          return word_end?
         else
           # If @equal is nil, there is nothing more to search, so the string is not in the tree.
           # If @equal exists, we need to continue searching for the remainder of the string.
@@ -156,13 +200,13 @@ module TernarySearch
     # tst.words => ["polygon", "triangle"]
     # ```
     def words(output : Array(String) = [] of String, stack = "")
-      stack += @value.to_s unless @value.nil?
+      stack += value.to_s unless value.nil?
 
       if !@left.nil?
         ls = ""
         @left.not_nil!.words(output, ls)
       end
-      output << stack if @ending
+      output << stack if word_end?
       if !@equal.nil?
         @equal.not_nil!.words(output, stack)
       end
@@ -192,7 +236,7 @@ module TernarySearch
       # increment the value of the var `l` that is at the end
       # of the pointer `length_ptr` if the current depth
       # returns a word, and the depth is greater than the current length
-      length_ptr.value = depth if @ending && depth > length_ptr.value
+      length_ptr.value = depth if word_end? && depth > length_ptr.value
       depth += 1
 
       # recurse the left
