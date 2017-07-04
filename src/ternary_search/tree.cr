@@ -26,54 +26,51 @@ module TernarySearch
     # tst.insert("polygon") # => nil
     # ```
     def insert(string : String) : Nil
-      # split the *string* into Char, String
-      # e.g. "polygon".head => 'p' # Char
-      #      "polygon".tail => "olygon" # String
-      raw_head, tail = string[0], string[1..-1]
+      insert(Char::Reader.new(string))
+    end
 
-      # bail out if the string is empty
-      return nil if raw_head.nil?
+    protected def insert(reader : Char::Reader) : Nil
+      # Return early if the string is empty.
+      return unless reader.has_next?
 
-      # assign the non-nil head locally
-      head = raw_head.not_nil!
+      # Assign the first character of the string locally.
+      head = reader.current_char
 
-      # set @value, to the first Char of string
-      # unless value is already set
-      @value = head if @value.nil?
+      # Set the node's value to the first character of the string unless it's
+      # already been set. We store the value locally so we don't have to do nil
+      # checks.
+      value = (@value ||= head)
 
-      # assign the non-nil value locally
-      value = @value.not_nil!
       if head < value
-        # if the first Char of string is less than value
-        # if @left is nil, create a new tree and assign it to the @left
-        @left = Tree.new if @left.nil?
-        # add the string to the @left tree
-        @left.not_nil!.insert(string)
+        # The first character of the string is less than value, we insert the
+        # entire string into the left tree.
+
+        # If @left is nil, create a new tree and assign it to the @left.
+        left = (@left ||= Tree.new)
+
+        # Add the string to the left tree.
+        left.insert(reader)
       elsif head == value
-        if tail.empty?
-          # this is the end of the string
-          # therefore the end of the word
+        # Move the reader to the next character so that it points to the
+        # second character of the string.
+        reader.next_char
+
+        if !reader.has_next?
+          # This is the end of the string, therefore the end of the word.
           @ending = true
         else
-          # if the first Char of string is equal to value
-          # if @equal is nil, create a new tree and assign it to @equal
-          @equal = Tree.new if @equal.nil?
-          # insert the tail of the word into the tree
-          # i.e.
-          # ```
-          # s = "string"
-          # head = s[0]     # => 's'
-          # tail = s[1..-1] # => "tring"
-          # # now insert "tring" as a child of the 's' tree
-          # ```
-          @equal.not_nil!.insert(tail)
+          # If the first Char of string is equal to value, we insert the string
+          # apart from it's first character into the equal tree.
+
+          equal = (@equal ||= Tree.new)
+          equal.insert(reader)
         end
       elsif head > value
-        # if the first Char of string is greater than value
-        # if @right is nil, create a new tree and assign it to the @right
-        @right = Tree.new unless @right
-        # add the string to the @right tree
-        @right.not_nil!.insert(string)
+        # The first character of the string is greater than value, we insert the
+        # entire string into the right tree.
+
+        right = (@right ||= Tree.new)
+        right.insert(reader)
       end
     end
 
@@ -87,45 +84,61 @@ module TernarySearch
     # tst.search("poly")     # => false
     # tst.search("triangle") # => true
     # ```
+
     def search(string : String) : Bool
-      # split the *string* into Char, String
-      # e.g. "polygon".head => 'p' # Char
-      #      "polygon".tail => "olygon" # String
-      raw_head, tail = string[0], string[1..-1]
+      search(Char::Reader.new(string))
+    end
 
-      # bail out if the string or value is empty
-      return false if raw_head.nil? || @value.nil?
+    protected def search(reader : Char::Reader) : Bool
+      # Bail out if the string is empty.
+      return false unless reader.has_next?
 
-      # assign the non-nil head locally
-      head = raw_head.not_nil!
+      head = reader.current_char
+      value = @value
 
-      # assign the non-nil value locally
-      value = @value.not_nil!
+      # Bail out if the node value is empty
+      return false unless value
 
       if head < value
-        # the search term starts with a Char that is less than value
-        # therefore:
-        # if the left tree from this node is empty, then the string is not in the tree
-        # otherwise, we need to keep searching down the left tree
-        return @left.nil? ? false : @left.not_nil!.search(string)
+        # The search term starts with a Char that is less than value.
+        # Therefore:
+        # - If the left tree from this node is empty, then the string is not in the tree.
+        # - Otherwise, we need to keep searching down the left tree.
+        if left = @left
+          return left.search(reader)
+        else
+          return false
+        end
       elsif head > value
-        # the search term starts with a Char that is greater than value
-        # therefore:
-        # if the right tree from this node is empty, then the string is not in the tree
-        # otherwise, we need to keep searching down the right tree
-        return @right.nil? ? false : @right.not_nil!.search(string)
+        # The search term starts with a Char that is greater than value.
+        # Therefore:
+        # - If the right tree from this node is empty, then the string is not in the tree
+        # - Otherwise, we need to keep searching down the right tree
+        if right = @right
+          return right.search(reader)
+        else
+          return false
+        end
       else
-        # the first Char of the search string is the same as value
-        # therefore:
-        # this is EITHER: the end of the search string or the start of it
-        if tail.empty?
-          # if the tail there is nothing more to look for
-          # therefore: if this is and @ending node, then we found it, otherwise we did not
+        # The first Char of the search string is the same as value.
+        # Therefore this is either the end of the search string or the start of it.
+
+        # Move the reader to the next character so that it points to the
+        # second character of the string.
+        reader.next_char
+
+        if !reader.has_next?
+          # There is nothing more to look for.
+          # Therefore, if this is an @ending node, then we found it, otherwise we did not.
           return @ending
         else
-          # if @equal is nil, there is nothing more to search, so the string is not in the tree
-          # otherwise: we are ok so far but need to continue searching for the remainder of the string
-          return @equal.nil? ? false : @equal.not_nil!.search(tail)
+          # If @equal is nil, there is nothing more to search, so the string is not in the tree.
+          # If @equal exists, we need to continue searching for the remainder of the string.
+          if equal = @equal
+            return equal.search(reader)
+          else
+            return false
+          end
         end
       end
     end
