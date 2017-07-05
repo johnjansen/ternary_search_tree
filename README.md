@@ -51,3 +51,4 @@ tst.words = ["polygon", "triangle"]
 ## Contributors
 
 - [johnjansen](https://github.com/johnjansen) John Jansen - creator, maintainer
+- [RX14](https://github.com/RX14) Chris Hobbs - rewriter, maintainer
