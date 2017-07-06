@@ -1,3 +1,5 @@
+require "msgpack"
+
 module TernarySearch
   # A Ternary Search Tree implementation
   # https://en.wikipedia.org/wiki/Ternary_search_tree
@@ -12,6 +14,16 @@ module TernarySearch
   # tst.search("gon")      # => false
   # ```
   class Tree
+    MessagePack.mapping({
+      combined_value: UInt32,
+      left:           Tree?,
+      equal:          Tree?,
+      right:          Tree?,
+    })
+
+    def initialize
+    end
+
     # Contains the Char value of this tree node with the highest bit set if
     # the node represents the end of a word. This is done to reduce the size of
     # this class.

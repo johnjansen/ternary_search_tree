@@ -11,9 +11,15 @@ describe TernarySearch::Tree do
     tst.insert "pr"
     tst.insert "cr"
 
-    tst.search("pr").should eq true
-    tst.search("prs").should eq false
-    tst.search("cr").should eq true
+    m = IO::Memory.new
+    m.write tst.to_msgpack
+
+    m.rewind
+    tst2 = TernarySearch::Tree.from_msgpack(m)
+
+    tst2.search("pr").should eq true
+    tst2.search("prs").should eq false
+    tst2.search("cr").should eq true
   end
 
   it "should return all words" do
