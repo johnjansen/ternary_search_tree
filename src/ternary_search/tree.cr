@@ -1,4 +1,5 @@
 require "msgpack"
+require "json"
 
 module TernarySearch
   # A Ternary Search Tree implementation
@@ -15,6 +16,12 @@ module TernarySearch
   # ```
   class Tree
     MessagePack.mapping({
+      combined_value: UInt32,
+      left:           Tree?,
+      equal:          Tree?,
+      right:          Tree?,
+    })
+    JSON.mapping({
       combined_value: UInt32,
       left:           Tree?,
       equal:          Tree?,
